@@ -7,11 +7,11 @@ from emstore.create import populate_batch_buffer_leveldb
 from emstore import Emstore
 import threading
 import time
-
+import memcache
 
 class TopicVectorComputationWorker:
 
-    def run(self, model, dimensions, embeddingType, topicfilename):
+    def run(self, dimensions, embeddingType, topicfilename):
         # print('Init Topic Vectors')
         t0 = time.time()
         fname = topicfilename
@@ -23,7 +23,6 @@ class TopicVectorComputationWorker:
         value = None
         global content
         content1 = [x.strip() for x in topics]
-        import memcache
         mc = memcache.Client(['127.0.0.1:11211'], debug=0)
         for y in content1:
             sentence_2 = y
@@ -36,8 +35,8 @@ class TopicVectorComputationWorker:
                     flag = 1
                 else:
                     t00 = time.time()
-                    topic_vector = avg_feature_vector(sentence_2.split(), model, num_features=dimensions,
-                                                      index2word_set=set(model.wv.index2word))
+                    topic_vector = avg_feature_vector(sentence_2.split(), modeldatatwitter, num_features=dimensions,
+                                                      index2word_set=set(modeldatatwitter.wv.index2word))
                     t01 = time.time()
                     print("Vector Generation Time", t01 - t00)
                     topicBatch.append(k)
@@ -201,7 +200,7 @@ if scriptindex == '1':
     print('Generate/Serialise Topic Vectors')
     pool = ProcessPool(TopicVectorComputationWorker, 8)
     print('Process Pool Initialised')
-    futures = [pool.submit_job(modeldatatwitter, 400, "twitter", "topicDataFile0" + str(i)) for i in
+    futures = [pool.submit_job(400, "twitter", "topicDataFile0" + str(i)) for i in
                [0, 1, 2, 3, 4, 5, 6, 7]]
     topicVectors = [f.result for f in futures]
     pool.join()
