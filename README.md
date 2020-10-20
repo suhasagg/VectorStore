@@ -44,6 +44,11 @@ Requirements and vectorstore:
 pip install -r requirements.txt
 python setup.py install
 ```
+#### Sample Test Script
+```
+ScaleTopicVectors.py
+Takes parameters 1 or 2 
+```
 
 Also see included docker-compose and Dockerfile.
 
