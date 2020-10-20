@@ -20,7 +20,7 @@ class TopicVectorComputationWorker:
         topicVectorBatch = []
         topicBatch = []
         i = 0
-        value = None
+        flag = 1
         global content
         content1 = [x.strip() for x in topics]
         mc = memcache.Client(['127.0.0.1:11211'], debug=0)
@@ -31,17 +31,15 @@ class TopicVectorComputationWorker:
                 k = y.replace(" ", "").replace(",", "").replace("'", "").replace("\n", "")
                 value = mc.get(embeddingType + k)
                 if value is not None:
-                    # print(k + ": Vector Exist")
-                    flag = 1
+                    print(k + ": Vector Exist")
                 else:
                     t00 = time.time()
-                    topic_vector = avg_feature_vector(sentence_2.split(), modeldatatwitter, num_features=dimensions,
-                                                      index2word_set=set(modeldatatwitter.wv.index2word))
+                    topic_vector = avg_feature_vector(sentence_2.split(), modeldatatwitter, num_features=dimensions)
                     t01 = time.time()
                     print("Vector Generation Time", t01 - t00)
                     topicBatch.append(k)
                     topicVectorBatch.append(topic_vector)
-                    mc.set(embeddingType + k, topic_vector)
+                    mc.set(embeddingType + k, flag)
 
                     if len(topicVectorBatch) == 100:
                         print('Topic Vector Batch sent to Emstore')
@@ -63,34 +61,43 @@ modeldatawiki = None
 modeldatatwitter = None
 modeldataconceptnet = None
 modeldatatopics = None
-
+index2word_set = None
 lock = threading.Lock()
 
 
 def loadModelWikipedia():
     global modeldatawiki
+    global index2word_set
     if modeldatawiki is None:
         # Load wikipedia word vectors
         modeldatawiki = KeyedVectors.load_word2vec_format("/root/wiki.en.vec")
+        wikiindex2word_set = set(modeldatawiki.wv.index2word)
+        index2word_set = wikiindex2word_set
     return modeldatawiki
 
 
 def loadModelTwitter():
     # Connect to databse
     global modeldatatwitter
+    global index2word_set
     if modeldatatwitter is None:
-        # Load wikipedia word vectors
+        # Load twitter word vectors
         modeldatatwitter = KeyedVectors.load_word2vec_format("/root/twitterembeddings/word2vec_twitter_tokens.bin",
                                                              binary='True', unicode_errors='ignore')
+        twitterindex2word_set = set(modeldatatwitter.wv.index2word)
+        index2word_set = twitterindex2word_set
     return modeldatatwitter
 
 
 def loadModelConceptNet():
     # Connect to databse
     global modeldataconceptnet
+    global index2word_set
     if modeldataconceptnet is None:
-        # Load wikipedia word vectors
+        # Load concept net word vectors
         modeldataconceptnet = KeyedVectors.load_word2vec_format("/root/commonsenseembeddings/numberbatch-en-19.08.txt")
+        conceptnetindex2word_set = set(modeldataconceptnet.wv.index2word)
+        index2word_set = conceptnetindex2word_set
     return modeldataconceptnet
 
 
@@ -132,7 +139,7 @@ def cosine_similarity(u, v):
     return ratio
 
 
-def avg_feature_vector(words, model, num_features, index2word_set):
+def avg_feature_vector(words, model, num_features):
     # function to average all words vectors in a given paragraph
     featureVec = np.zeros((num_features,), dtype="float32")
     nwords = 0
@@ -155,10 +162,9 @@ def generateSegmentsVectorFile(model, dimensions, embeddingtype, filename):
     segmentVectorBatch = []
     segmentBatch = []
     i = 0
-    value = None
+    flag = 1
     global content
     content1 = [x.strip() for x in segments]
-    import memcache
     mc = memcache.Client(['127.0.0.1:11211'], debug=0)
     for y in content1:
         sentence_2 = y
@@ -167,16 +173,13 @@ def generateSegmentsVectorFile(model, dimensions, embeddingtype, filename):
         try:
             value = mc.get(embeddingtype + k)
             if value is not None:
-                # print(k + ": Vector Exist")
-                flag = 1
+                print(k + ": Vector Exist")
             else:
-
-                segment_vector = avg_feature_vector(sentence_2.split(), model, num_features=dimensions,
-                                                    index2word_set=set(model.wv.index2word))
+                segment_vector = avg_feature_vector(sentence_2.split(), model, num_features=dimensions)
                 segmentBatch.append(k)
                 segmentVectorBatch.append(segment_vector)
 
-                mc.set(embeddingtype + k, segment_vector)
+                mc.set(embeddingtype + k, flag)
 
                 if len(segmentVectorBatch) == 100:
                     print('Segment Vector Batch sent to Emstore')
@@ -192,7 +195,7 @@ def generateSegmentsVectorFile(model, dimensions, embeddingtype, filename):
 
 
 modeldatatwitter = loadModelTwitter()
-modeldatatopics = loadModelTopics()
+#modeldatatopics = loadModelTopics()
 
 scriptindex = sys.argv[1]
 
