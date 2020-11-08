@@ -11,18 +11,13 @@ import memcache
 
 class TopicVectorComputationWorker:
 
-    def run(self, dimensions, embeddingType, topicfilename):
+    def run(self, entity, embeddingType, topicBatch, topicVectorBatch):
         # print('Init Topic Vectors')
         t0 = time.time()
-        fname = topicfilename
-        with open(fname) as f:
-            topics = f.readlines()
-        topicVectorBatch = []
-        topicBatch = []
         i = 0
         flag = 1
         global content
-        content1 = [x.strip() for x in topics]
+        content1 = [x.strip() for x in entity]
         mc = memcache.Client(['127.0.0.1:11211'], debug=0)
         for y in content1:
             sentence_2 = y
@@ -34,20 +29,20 @@ class TopicVectorComputationWorker:
                     print(k + ": Vector Exist")
                 else:
                     t00 = time.time()
-                    topic_vector = avg_feature_vector(sentence_2.split(), modeldatatwitter, num_features=dimensions)
+                    topic_vector = avg_feature_vector(sentence_2.split(), modeldatatwitter, num_features=400)
                     t01 = time.time()
                     print("Vector Generation Time", t01 - t00)
                     topicBatch.append(k)
                     topicVectorBatch.append(topic_vector)
-                    mc.set(embeddingType + k, flag)
+                    #mc.set(embeddingType + k, flag)
 
-                    if len(topicVectorBatch) == 100:
+                    if len(topicVectorBatch) == 16:
                         print('Topic Vector Batch sent to Emstore')
                         populate_batch_buffer_leveldb(topicBatch, topicVectorBatch, '~/topicfullcorpus')
                         topicBatch.clear()
                         topicVectorBatch.clear()
                         t1 = time.time()
-                        print("100 Vector Batch Serialisation Time", t1 - t0)
+                        print("10 Vector Batch Serialisation Time", t1 - t0)
                         t0 = time.time()
 
             except Exception as e:
@@ -56,6 +51,8 @@ class TopicVectorComputationWorker:
 
         return
 
+topicVectorBatch = []
+topicBatch = []
 
 modeldatawiki = None
 modeldatatwitter = None
@@ -70,7 +67,7 @@ def loadModelWikipedia():
     global index2word_set
     if modeldatawiki is None:
         # Load wikipedia word vectors
-        modeldatawiki = KeyedVectors.load_word2vec_format("/root/wiki.en.vec")
+        modeldatawiki = KeyedVectors.load_word2vec_format("/mnt/data/root/wiki.en.vec")
         wikiindex2word_set = set(modeldatawiki.wv.index2word)
         index2word_set = wikiindex2word_set
     return modeldatawiki
@@ -82,7 +79,7 @@ def loadModelTwitter():
     global index2word_set
     if modeldatatwitter is None:
         # Load twitter word vectors
-        modeldatatwitter = KeyedVectors.load_word2vec_format("/root/twitterembeddings/word2vec_twitter_tokens.bin",
+        modeldatatwitter = KeyedVectors.load_word2vec_format("/mnt/data/root/twitterembeddings/word2vec_twitter_tokens.bin",
                                                              binary='True', unicode_errors='ignore')
         twitterindex2word_set = set(modeldatatwitter.wv.index2word)
         index2word_set = twitterindex2word_set
@@ -95,7 +92,7 @@ def loadModelConceptNet():
     global index2word_set
     if modeldataconceptnet is None:
         # Load concept net word vectors
-        modeldataconceptnet = KeyedVectors.load_word2vec_format("/root/commonsenseembeddings/numberbatch-en-19.08.txt")
+        modeldataconceptnet = KeyedVectors.load_word2vec_format("/mnt/data/root/commonsenseembeddings/numberbatch-en-19.08.txt")
         conceptnetindex2word_set = set(modeldataconceptnet.wv.index2word)
         index2word_set = conceptnetindex2word_set
     return modeldataconceptnet
@@ -201,10 +198,16 @@ scriptindex = sys.argv[1]
 
 if scriptindex == '1':
     print('Generate/Serialise Topic Vectors')
-    pool = ProcessPool(TopicVectorComputationWorker, 8)
+    pool = ProcessPool(TopicVectorComputationWorker, 16)
     print('Process Pool Initialised')
-    futures = [pool.submit_job(400, "twitter", "topicDataFile0" + str(i)) for i in
-               [0, 1, 2, 3, 4, 5, 6, 7]]
+    fname = "Topics.txt"
+    print(fname)
+    with open(fname) as f:
+         topics = f.readlines()
+    partLen = 16
+    plol = [topics[o:o + partLen] for o in range(0, len(topics), partLen)]
+    print(len(plol))
+    futures = [pool.submit_job(entity, "twitter", topicBatch, topicVectorBatch) for entity in plol]
     topicVectors = [f.result for f in futures]
     pool.join()
 else:
