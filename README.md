@@ -10,6 +10,7 @@
 (Better vector serialization throughput (write performance / Read performance)
 Very useful when large user data sets (like user persona data sets) aregetting converted to vectors
 If database size is huge, user data loss is very less leading to better personalisation. 
+It also enables the use of different domain personas and trade off with vector computation time can be achieved.
 
 Not excited about having all your RAM eaten up?
 Still want fast lookup?
