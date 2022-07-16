@@ -5,6 +5,7 @@
 **Scale it using Vector-Store**
 
 >**Powered by LevelDB**
+>** Rocks DB support will be added soon to boost performance with SSDs**
 
 Not excited about having all your RAM eaten up?
 Still want fast lookup?
