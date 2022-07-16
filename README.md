@@ -8,9 +8,9 @@
 
 **Rocks DB support will be added soon to boost performance with SSDs**
 
-(Better vector serialization throughput (write performance / Read performance)
+(Better vector serialization throughput (write performance / Read performance))
 
-Very useful when large user data sets (like user persona data sets) aregetting converted to vectors
+Very useful when large user data sets (like user persona data sets) are getting converted to vectors
 
 If database size is huge, user data loss is very less leading to better personalisation. 
 
