@@ -7,6 +7,9 @@
 **Powered by LevelDB**
 
 **Rocks DB support will be added soon to boost performance with SSDs**
+(Better vector serialization throughput (write performance / Read performance)
+Very useful when large user data sets (like user persona data sets) aregetting converted to vectors
+If database size is huge, user data loss is very less leading to better personalisation. 
 
 Not excited about having all your RAM eaten up?
 Still want fast lookup?
